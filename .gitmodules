@@ -1,0 +1,3 @@
+[submodule "tsdb/test-metrics"]
+	path = tsdb/test-metrics
+	url = https://github.com/bzub/opentsdb-test-metrics.git
