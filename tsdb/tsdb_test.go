@@ -5,8 +5,9 @@ import (
 	"testing"
 	"io/ioutil"
 	"strings"
+	"bytes"
 	"encoding/json"
-	"github.com/davecgh/go-spew/spew"
+	// "github.com/davecgh/go-spew/spew"
 )
 
 // Hook up gocheck into the gotest runner
@@ -25,27 +26,35 @@ type tsdbSuite struct {
 // Tie our test suite into gocheck
 var _ = Suite(&tsdbSuite{})
 
-func (s *tsdbSuite) TestToFromJson(c *C) {
+func (s *tsdbSuite) Test00ToFromJson(c *C) {
 	for i, v := range s.reqsJSON {
-		fromJSON := NewEmptyRequest()
-		err := json.Unmarshal(v, &fromJSON)
+		testJSON, err := compactJSON(v)
 		c.Assert(err, IsNil)
-		spew.Dump(fromJSON)
+		fromJSON := NewEmptyRequest()
+		err = json.Unmarshal(testJSON, &fromJSON)
+		c.Assert(err, IsNil)
 		s.reqs = append(s.reqs, *fromJSON)
 		JSONFromReq, err := json.Marshal(s.reqs[i])
 		c.Assert(err, IsNil)
-		c.Check(JSONFromReq, DeepEquals, v)
+		c.Check(JSONFromReq, DeepEquals, testJSON)
 	}
+	print(len(s.reqs))
 }
 
-func (s *tsdbSuite) TestQuery(c *C) {
+func (s *tsdbSuite) Test01Query(c *C) {
+	print(len(s.reqs))
 	for i, v := range s.reqs {
 		qResp, err := s.conn.Query(v)
 		c.Assert(err, IsNil)
 		var JSONFromResp []byte
-		err = json.Unmarshal(JSONFromResp, qResp)
+		JSONFromResp, err = json.Marshal(qResp)
 		c.Assert(err, IsNil)
-		c.Assert(JSONFromResp, DeepEquals, s.respsJSON[i])
+		var raw0, raw1 interface{}
+		err = json.Unmarshal(JSONFromResp, &raw0)
+		c.Assert(err, IsNil)
+		err = json.Unmarshal(s.respsJSON[i], &raw1)
+		c.Assert(err, IsNil)
+		c.Assert(raw0, DeepEquals, raw1)
 		s.resps = append(s.resps, *qResp)
 	}
 }
@@ -54,7 +63,7 @@ func (s *tsdbSuite) SetUpSuite(c *C) {
 	var err error
 
 	// Connect to a TSDB server
-	s.conn, err = NewConnection("pkc-inftsdb01.ak-networks.com", "4242")
+	s.conn, err = NewConnection("testtsdb", "4243")
 	if err != nil { panic(err) }
 
 	// Load from JSON files
@@ -73,4 +82,12 @@ func (s *tsdbSuite) SetUpSuite(c *C) {
 			s.respsJSON = append(s.respsJSON, json)
 		}
 	}
+}
+
+// Helper functions
+func compactJSON(inJSON []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	err := json.Compact(&buf, inJSON)
+	if err != nil { return []byte(nil), err }
+	return buf.Bytes(), nil
 }

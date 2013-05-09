@@ -7,7 +7,8 @@ import (
 	"encoding/json"
 	"regexp"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
+	"strconv"
+	// "github.com/davecgh/go-spew/spew"
 )
 
 type request struct {
@@ -22,7 +23,6 @@ type tsTime struct {
 }
 
 func (t *tsTime) UnmarshalJSON(inJSON []byte) error {
-	spew.Dump("---tsTime UnmarshalJSON---")
 	var raw interface{}
 	err := json.Unmarshal(inJSON, &raw)
 	if err != nil { panic(err) }
@@ -35,6 +35,10 @@ func (t *tsTime) UnmarshalJSON(inJSON []byte) error {
 	}
 	if err != nil { return &json.InvalidUnmarshalError{} }
 	return err
+}
+
+func (t tsTime) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.Unix())
 }
 
 func (t *tsTime) Parse(timeIn string) error {
@@ -99,19 +103,41 @@ func (t *tsTime) fromUnixTime(timeIn string) error {
 	return nil
 }
 
-type response struct {
-	Metric          string
-	Tags            map[string]string
-	Aggregated_tags []string
-	Dps             map[int64]int64
+type response []result
+
+type result struct {
+	Metric          string             `json:"metric"`
+	Tags            map[string]string  `json:"tags"`
+	Aggregated_tags []string           `json:"aggregated_tags"`
+	Dps             map[string]tsValue `json:"dps"`
+}
+
+type tsValue float64
+
+func (v *tsValue) UnmarshalJSON(inJSON []byte) error {
+	var raw interface{}
+	err := json.Unmarshal(inJSON, &raw)
+	if err != nil { panic(err) }
+
+	switch raw.(type) {
+	case float64, int64:
+		*v = tsValue(raw.(float64))
+		return nil
+	case string:
+		i, err := strconv.ParseFloat(raw.(string), 64)
+		if err != nil { return err }
+		*v = tsValue(i)
+		return nil
+	}
+	return &json.UnmarshalTypeError{}
 }
 
 type query struct {
-	Aggregator string
-	Metric     string
-	Rate       bool
+	Aggregator string `json:"aggregator"`
+	Metric     string `json:"metric"`
+	Rate       bool   `json:"rate"`
 	Downsample string `json:"downsample,omitempty"`
-	Tags       map[string]string
+	Tags       map[string]string `json:"tags"`
 }
 
 func NewEmptyRequest() *request {
@@ -121,5 +147,10 @@ func NewEmptyRequest() *request {
 }
 
 func NewEmptyResponse() *response {
-	return new(response)
+	// response := make(response, 0)
+	return &response{}
+}
+
+func NewEmptyResult() *result {
+	return new(result)
 }
