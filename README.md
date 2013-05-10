@@ -4,7 +4,7 @@
 
 Install the package:
 ```
-go get 
+go get -u github.com/bzub/go-opentsdb/tsdb
 ```
 
 Add this to your program:
