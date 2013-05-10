@@ -36,13 +36,18 @@ func (s *tsdbSuite) Test00ToFromJson(c *C) {
 		s.reqs = append(s.reqs, *fromJSON)
 		JSONFromReq, err := json.Marshal(s.reqs[i])
 		c.Assert(err, IsNil)
-		c.Check(JSONFromReq, DeepEquals, testJSON)
+		// c.Check(JSONFromReq, DeepEquals, testJSON)
+		// c.Check(string(JSONFromReq), Equals, string(testJSON))
+		var raw0, raw1 interface{}
+		err = json.Unmarshal(JSONFromReq, &raw0)
+		c.Assert(err, IsNil)
+		err = json.Unmarshal(testJSON, &raw1)
+		c.Assert(err, IsNil)
+		c.Assert(raw0, DeepEquals, raw1)
 	}
-	print(len(s.reqs))
 }
 
 func (s *tsdbSuite) Test01Query(c *C) {
-	print(len(s.reqs))
 	for i, v := range s.reqs {
 		qResp, err := s.conn.Query(v)
 		c.Assert(err, IsNil)
