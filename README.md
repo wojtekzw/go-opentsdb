@@ -1,4 +1,5 @@
 # go-opentsdb
+Proved Go package 'tsdb' for interacting with OpenTSDB and analyzing timeseries data.
 
 ## Usage
 
@@ -9,5 +10,5 @@ go get -u github.com/bzub/go-opentsdb/tsdb
 
 Add this to your program:
 ```
-import "tsdb"
+import "github.com/bzub/go-opentsdb/tsdb"
 ```

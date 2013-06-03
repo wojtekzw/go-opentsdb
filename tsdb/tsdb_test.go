@@ -15,8 +15,8 @@ func Test(t *testing.T) { TestingT(t) }
 
 type tsdbSuite struct {
 	conn      *connection
-	reqs      []request
-	resps     []response
+	reqs      []Request
+	resps     []Response
 	// dpts      []dataPoint
 	// queries   []query
 	reqsJSON     [][]byte // Correct JSON requests. Populated by json files.
