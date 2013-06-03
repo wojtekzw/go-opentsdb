@@ -33,7 +33,6 @@ func (s *tsdbSuite) Test00ToFromJson(c *C) {
 		testJSON, err := compactJSON(v)
 		c.Assert(err, IsNil)
 		fromJSON := NewEmptyRequest()
-		print(string(testJSON))
 		err = json.Unmarshal(testJSON, &fromJSON)
 		c.Assert(err, IsNil)
 		s.reqs = append(s.reqs, *fromJSON)
@@ -71,12 +70,6 @@ func (s *tsdbSuite) SetUpSuite(c *C) {
 	// Connect to a TSDB server
 	s.conn, err = NewConnection("testtsdb", "4242")
 	if err != nil { panic(err) }
-
-	// Initialize JSON slices
-	s.reqsJSON = make([][]byte, 0, 10)
-	s.respsJSON = make([][]byte, 0, 10)
-	s.errReqsJSON = make([][]byte, 0, 10)
-	s.errRespsJSON = make([][]byte, 0, 10)
 
 	// Load from JSON files
 	testFiles, err := ioutil.ReadDir("test-metrics/json")
