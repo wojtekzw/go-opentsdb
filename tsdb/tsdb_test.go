@@ -32,7 +32,7 @@ func (s *tsdbSuite) Test00ToFromJson(c *C) {
 	for i, v := range s.reqsJSON {
 		testJSON, err := compactJSON(v)
 		c.Assert(err, IsNil)
-		fromJSON := NewEmptyRequest()
+		fromJSON := new(Request)
 		err = json.Unmarshal(testJSON, &fromJSON)
 		c.Assert(err, IsNil)
 		s.reqs = append(s.reqs, *fromJSON)
@@ -68,7 +68,7 @@ func (s *tsdbSuite) SetUpSuite(c *C) {
 	var err error
 
 	// Connect to a TSDB server
-	s.conn, err = NewConnection("testtsdb", "4242")
+	s.conn, err = Dial("testtsdb", "4242")
 	if err != nil { panic(err) }
 
 	// Load from JSON files

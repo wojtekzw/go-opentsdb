@@ -14,8 +14,8 @@ type connection struct {
 	host string
 }
 
-// NewConnection returns a new connection type to an OpenTSDB host:port.
-func NewConnection(host string, port string) (*connection, error) {
+// Dial returns a new connection type to an OpenTSDB host:port.
+func Dial(host string, port string) (*connection, error) {
 	connection := new(connection)
 	connection.host = net.JoinHostPort(host, port)
 	return connection, nil
@@ -34,7 +34,7 @@ func (c *connection) Query(req Request) (*Response, error) {
 	respJSON, err := ioutil.ReadAll(respHTTP.Body)
 	if err != nil { return &Response{}, err }
 
-	resp := NewEmptyResponse()
+	resp := new(Response)
 	err = json.Unmarshal(respJSON, &resp)
 	if err != nil { return &Response{}, err }
 

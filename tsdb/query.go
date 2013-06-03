@@ -13,28 +13,29 @@ import (
 
 // Request represents the information needed to query a TSDB for timeseries data.
 type Request struct {
-	Start   *TSTime  `json:"start"`
-	End     *TSTime  `json:"end,omitempty"` // Optional
+	Start   *Time  `json:"start"`
+	End     *Time  `json:"end,omitempty"` // Optional
 	Padding bool     `json:"padding,omitempty"` // Optional
-	Queries []query  `json:"queries"`
+	Queries []Query  `json:"queries"`
 }
 
 /*
-TSTime represents a timeseries time value.
+Time represents a timeseries time value and extends time.Time.  You can manipulate
+a tsdb.Time type just like a regular time.Time type.
 
-Valid formats for TSTime are:
+Valid formats for Time are:
 	Relative (see: http://opentsdb.net/docs/build/html/user_guide/query/index.html#relative)
 	Unix     (see: http://opentsdb.net/docs/build/html/user_guide/query/index.html#absolute-unix-time)
 	Absolute (see: http://opentsdb.net/docs/build/html/user_guide/query/index.html#absolute-formatted-time)
 */
-type TSTime struct {
+type Time struct {
 	time.Time
 	format string
 	string
 }
 
 // UnmarshalJSON implements json.Unmarshaler for consistant conversion from JSON.
-func (t *TSTime) UnmarshalJSON(inJSON []byte) error {
+func (t *Time) UnmarshalJSON(inJSON []byte) error {
 	var raw interface{}
 	err := json.Unmarshal(inJSON, &raw)
 	if err != nil { panic(err) }
@@ -49,7 +50,7 @@ func (t *TSTime) UnmarshalJSON(inJSON []byte) error {
 }
 
 // MarshalJSON implements json.Marshaler for consistant conversion to JSON.
-func (t TSTime) MarshalJSON() ([]byte, error) {
+func (t *Time) MarshalJSON() ([]byte, error) {
 	switch t.format {
 	case "":         return nil, nil
 	case "Unix":     return json.Marshal(t.Unix())
@@ -59,28 +60,29 @@ func (t TSTime) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t.Unix())
 }
 
-// Parse takes a string, verifies that it is a valid TSTime, and if so sets t to that time.
-// If the input string is not a valid TSTime then t is unchanged.
-func (t *TSTime) Parse(timeIn string) error {
+// Parse takes a string, verifies that it is a valid Time, and if so sets t to that time
+// and returns a nil error.
+// If the input string is not a valid Time then t is unchanged and err contains the error.
+func (t *Time) Parse(timeIn string) error {
 	switch {
-	case !IsValidTime(timeIn):   return fmt.Errorf("Invalid Time Value")
-	case IsAbsoluteTime(timeIn): return t.fromAbsoluteTime(timeIn)
-	case IsRelativeTime(timeIn): return t.fromRelativeTime(timeIn)
-	case IsUnixTime(timeIn):     return t.fromUnixTime(timeIn)
+	case !isValidTime(timeIn):   return fmt.Errorf("Invalid Time Value")
+	case isAbsoluteTime(timeIn): return t.fromAbsoluteTime(timeIn)
+	case isRelativeTime(timeIn): return t.fromRelativeTime(timeIn)
+	case isUnixTime(timeIn):     return t.fromUnixTime(timeIn)
 	}
 	return fmt.Errorf("Invalid Time Value (Uncaught)")
 }
 
-// IsValidTime verifies that a string can be converted to a TSTime.
-func IsValidTime(timeIn string) bool {
-	if IsAbsoluteTime(timeIn) || IsRelativeTime(timeIn) || IsUnixTime(timeIn) {
+// isValidTime verifies that a string can be converted to a Time.
+func isValidTime(timeIn string) bool {
+	if isAbsoluteTime(timeIn) || isRelativeTime(timeIn) || isUnixTime(timeIn) {
 		return true
 	}
 	return false
 }
 
 /*
-IsAbsoluteTime verifies if a string is a valid Absolute format time.
+isAbsoluteTime verifies if a string is a valid Absolute format time.
 Valid formats are:
 	yyyy/MM/dd-HH:mm:ss
 	yyyy/MM/dd HH:mm:ss
@@ -88,19 +90,19 @@ Valid formats are:
 	yyyy/MM/dd HH:mm
 	yyyy/MM/dd
 */
-func IsAbsoluteTime(timeIn string) bool {
+func isAbsoluteTime(timeIn string) bool {
 	pattern := `^\d{4}\/\d{1,2}\/\d{1,2}`
 	match, err := regexp.MatchString(pattern, timeIn)
 	if err != nil { panic(err) }
 	return match
 }
 /*
-IsAbsoluteTime verifies if a string is a valid Relative format time.
+isAbsoluteTime verifies if a string is a valid Relative format time.
 
 Valid formats are:
 	[0-9]*{s,m,h,d,w,n,y}-ago
 */
-func IsRelativeTime(timeIn string) bool {
+func isRelativeTime(timeIn string) bool {
 	pattern := `^\d+[smhdwmny]\-ago`
 	match, err := regexp.MatchString(pattern, timeIn)
 	if err != nil { panic(err) }
@@ -108,13 +110,13 @@ func IsRelativeTime(timeIn string) bool {
 }
 
 /*
-IsAbsoluteTime verifies if a string is a valid Unix format time.
+isAbsoluteTime verifies if a string is a valid Unix format time.
 
 Valid formats are:
 	10-digit integer
 	13-digit optional millisecond precision
 */
-func IsUnixTime(timeIn string) bool {
+func isUnixTime(timeIn string) bool {
 	pattern := `^\d{10}|^\d{13}`
 	match, err := regexp.MatchString(pattern, timeIn)
 	if err != nil { panic(err) }
@@ -122,8 +124,8 @@ func IsUnixTime(timeIn string) bool {
 }
 
 // fromAbsoluteTime parses the provided timeIn string and if possible
-// assigns the time to TSTime t.
-func (t *TSTime) fromAbsoluteTime(timeIn string) (err error) {
+// assigns the time to Time t.
+func (t *Time) fromAbsoluteTime(timeIn string) (err error) {
 	t.format = "Absolute"
 	t.string = timeIn
 	t.Time, err = time.Parse("2006/01/02-15:04:05", timeIn)
@@ -142,8 +144,8 @@ func (t *TSTime) fromAbsoluteTime(timeIn string) (err error) {
 	return
 }
 
-// AbsoluteTime returns the a string version of a TSTime in Absolute format.
-func (t *TSTime) AbsoluteTime() (string) {
+// AbsoluteTime returns the string version of a Time in Absolute format.
+func (t *Time) AbsoluteTime() (string) {
 	switch {
 	case t.Second() > 0: return t.Time.Format("2006/01/02-15:04:05")
 	case t.Minute() > 0: return t.Time.Format("2006/01/02-15:04")
@@ -153,21 +155,21 @@ func (t *TSTime) AbsoluteTime() (string) {
 }
 
 // fromRelativeTime parses the provided timeIn string and if possible
-// assigns the time to TSTime t.
-func (t *TSTime) fromRelativeTime(timeIn string) error {
+// assigns the time to Time t.
+func (t *Time) fromRelativeTime(timeIn string) error {
 	t.format = "Relative"
 	t.string = timeIn
 	return nil
 }
 
-// RelativeTime returns the a string version of a TSTime in Relative format.
-func (t *TSTime) RelativeTime() (string) {
+// RelativeTime returns the string version of a Time in Relative format.
+func (t *Time) RelativeTime() (string) {
 	return t.Time.Format("2006/01/02-15:04:05")
 }
 
 // fromUnixTime parses the provided timeIn string and if possible
-// assigns the time to TSTime t.
-func (t *TSTime) fromUnixTime(timeIn string) (err error) {
+// assigns the time to Time t.
+func (t *Time) fromUnixTime(timeIn string) (err error) {
 	t.format = "Unix"
 	t.string = timeIn
 	var timeInInt64 int64
@@ -216,26 +218,12 @@ func (v *tsValue) UnmarshalJSON(inJSON []byte) error {
 	return &json.UnmarshalTypeError{}
 }
 
-// query represents the information needed for a single query to OpenTSDB sans
+// Query represents the information needed for a single query to OpenTSDB sans
 // time interval.
-type query struct {
+type Query struct {
 	Aggregator string `json:"aggregator"`
 	Metric     string `json:"metric"`
 	Rate       bool   `json:"rate"`
 	Downsample string `json:"downsample,omitempty"`
 	Tags       map[string]string `json:"tags"`
-}
-
-// NewEmptyRequest returns an empty Request type.
-func NewEmptyRequest() *Request {
-	newReq        := new(Request)
-	// newReq.Queries = make([]query, 0)
-	return newReq
-}
-
-// NewEmptyResponse returns an empty Response type.
-func NewEmptyResponse() *Response {
-	resp := make(Response, 0)
-	return &resp
-	// return new(Response)
 }
