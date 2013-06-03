@@ -12,14 +12,16 @@ import (
 )
 
 type request struct {
-	Start   tsTime  `json:"start"`
-	End     tsTime  `json:"end,omitempty"` // Optional
+	Start   *tsTime  `json:"start"`
+	End     *tsTime  `json:"end,omitempty"` // Optional
 	Padding bool    `json:"padding,omitempty"` // Optional
 	Queries []query `json:"queries"`
 }
 
 type tsTime struct {
 	time.Time
+	Format string
+	string
 }
 
 func (t *tsTime) UnmarshalJSON(inJSON []byte) error {
@@ -29,28 +31,29 @@ func (t *tsTime) UnmarshalJSON(inJSON []byte) error {
 
 	switch raw.(type) {
 	case float64:
-		t.Time = time.Unix(int64(raw.(float64)), 0)
+		err = t.Parse(strconv.FormatInt(int64(raw.(float64)), 10))
 	case string:
 		err = t.Parse(raw.(string))
 	}
-	if err != nil { return &json.InvalidUnmarshalError{} }
 	return err
 }
 
 func (t tsTime) MarshalJSON() ([]byte, error) {
+	switch t.Format {
+	case "":         return nil, nil
+	case "Unix":     return json.Marshal(t.Unix())
+	case "Absolute": return json.Marshal(t.AbsoluteTime())
+	case "Relative": return json.Marshal(t.string)
+	}
 	return json.Marshal(t.Unix())
 }
 
 func (t *tsTime) Parse(timeIn string) error {
 	switch {
-	case !IsValidTime(timeIn):
-		return fmt.Errorf("Invalid Time Value")
-	case IsAbsoluteTime(timeIn):
-		return t.fromAbsoluteTime(timeIn)
-	case IsRelativeTime(timeIn):
-		return t.fromRelativeTime(timeIn)
-	case IsUnixTime(timeIn):
-		return t.fromUnixTime(timeIn)
+	case !IsValidTime(timeIn):   return fmt.Errorf("Invalid Time Value")
+	case IsAbsoluteTime(timeIn): return t.fromAbsoluteTime(timeIn)
+	case IsRelativeTime(timeIn): return t.fromRelativeTime(timeIn)
+	case IsUnixTime(timeIn):     return t.fromUnixTime(timeIn)
 	}
 	panic(fmt.Errorf("Invalid Time Value (Uncaught)"))
 }
@@ -91,15 +94,51 @@ func IsUnixTime(timeIn string) bool {
 	return match
 }
 
-func (t *tsTime) fromAbsoluteTime(timeIn string) error {
-	return nil
+func (t *tsTime) fromAbsoluteTime(timeIn string) (err error) {
+	t.Format = "Absolute"
+	t.string = timeIn
+	t.Time, err = time.Parse("2006/01/02-15:04:05", timeIn)
+	if err == nil { return }
+	t.Time, err = time.Parse("2006/01/02 15:04:05", timeIn)
+	if err == nil { return }
+	t.Time, err = time.Parse("2006/01/02-15:04", timeIn)
+	if err == nil { return }
+	t.Time, err = time.Parse("2006/01/02 15:04", timeIn)
+	if err == nil { return }
+	t.Time, err = time.Parse("2006/01/02-15", timeIn)
+	if err == nil { return }
+	t.Time, err = time.Parse("2006/01/02 15", timeIn)
+	if err == nil { return }
+	t.Time, err = time.Parse("2006/01/02", timeIn)
+	return
+}
+
+func (t *tsTime) AbsoluteTime() (string) {
+	switch {
+	case t.Second() > 0: return t.Time.Format("2006/01/02-15:04:05")
+	case t.Minute() > 0: return t.Time.Format("2006/01/02-15:04")
+	case t.Hour()   > 0: return t.Time.Format("2006/01/02-15")
+	}
+	return t.Time.Format("2006/01/02")
 }
 
 func (t *tsTime) fromRelativeTime(timeIn string) error {
+	t.Format = "Relative"
+	t.string = timeIn
 	return nil
 }
 
-func (t *tsTime) fromUnixTime(timeIn string) error {
+func (t *tsTime) RelativeTime() (string) {
+	return t.Time.Format("2006/01/02-15:04:05")
+}
+
+func (t *tsTime) fromUnixTime(timeIn string) (err error) {
+	t.Format = "Unix"
+	t.string = timeIn
+	var timeInInt64 int64
+	timeInInt64, err = strconv.ParseInt(timeIn, 10, 64)
+	if err != nil { return err }
+	t.Time = time.Unix(timeInInt64, 0)
 	return nil
 }
 
@@ -108,7 +147,7 @@ type response []result
 type result struct {
 	Metric          string             `json:"metric"`
 	Tags            map[string]string  `json:"tags"`
-	Aggregated_tags []string           `json:"aggregated_tags"`
+	AggregatedTags  []string           `json:"aggregateTags"`
 	Dps             map[string]tsValue `json:"dps"`
 }
 
@@ -147,10 +186,7 @@ func NewEmptyRequest() *request {
 }
 
 func NewEmptyResponse() *response {
-	// response := make(response, 0)
-	return &response{}
-}
-
-func NewEmptyResult() *result {
-	return new(result)
+	resp := make(response, 0)
+	return &resp
+	// return new(response)
 }
