@@ -14,7 +14,7 @@ import (
 func Test(t *testing.T) { TestingT(t) }
 
 type tsdbSuite struct {
-	conn      *connection
+	db        *TSDB
 	reqs      []Request
 	resps     []Response
 	// dpts      []dataPoint
@@ -49,7 +49,7 @@ func (s *tsdbSuite) Test00ToFromJson(c *C) {
 
 func (s *tsdbSuite) Test01Query(c *C) {
 	for i, v := range s.reqs {
-		qResp, err := s.conn.Query(v)
+		qResp, err := s.db.Query(v)
 		c.Assert(err, IsNil)
 		var JSONFromResp []byte
 		JSONFromResp, err = json.Marshal(qResp)
@@ -67,9 +67,12 @@ func (s *tsdbSuite) Test01Query(c *C) {
 func (s *tsdbSuite) SetUpSuite(c *C) {
 	var err error
 
-	// Connect to a TSDB server
-	s.conn, err = Dial("testtsdb", "4242")
-	if err != nil { panic(err) }
+	// Connect to a TSDB server to test against
+	// s.conn, err = Dial("testtsdb", 4242)
+	// if err != nil { panic(err) }
+
+	testserver := &Server{Host:"testtsdb", Port:4242}
+	s.db = &TSDB{Servers: []Server{*testserver}}
 
 	// Load from JSON files
 	testFiles, err := ioutil.ReadDir("test-metrics/json")
