@@ -20,8 +20,7 @@ type Request struct {
 }
 
 /*
-Time represents a timeseries time value and extends time.Time.  You can manipulate
-a tsdb.Time type just like a regular time.Time type.
+Time represents a timeseries time value.
 
 Valid formats for Time are:
 	Relative (see: http://opentsdb.net/docs/build/html/user_guide/query/index.html#relative)
@@ -29,7 +28,7 @@ Valid formats for Time are:
 	Absolute (see: http://opentsdb.net/docs/build/html/user_guide/query/index.html#absolute-formatted-time)
 */
 type Time struct {
-	time.Time
+	time   time.Time
 	format string
 	string
 }
@@ -53,22 +52,25 @@ func (t *Time) UnmarshalJSON(inJSON []byte) error {
 func (t *Time) MarshalJSON() ([]byte, error) {
 	switch t.format {
 	case "":         return nil, nil
-	case "Unix":     return json.Marshal(t.Unix())
+	case "Unix":     return json.Marshal(t.time.Unix())
 	case "Absolute": return json.Marshal(t.AbsoluteTime())
 	case "Relative": return json.Marshal(t.string)
+	default:         return json.Marshal(t.time.Unix())
 	}
-	return json.Marshal(t.Unix())
 }
 
-// Parse takes a string, verifies that it is a valid Time, and if so sets t to that time
-// and returns a nil error.
-// If the input string is not a valid Time then t is unchanged and err contains the error.
+/*
+Parse takes a string, verifies that it is a valid tsdb.Time, and if so sets t to that time
+and returns a nil error.
+
+If the input string is not a valid Time then t is unchanged and err contains the error.
+*/
 func (t *Time) Parse(timeIn string) error {
 	switch {
-	case !isValidTime(timeIn):   return fmt.Errorf("Invalid Time Value")
 	case isAbsoluteTime(timeIn): return t.fromAbsoluteTime(timeIn)
 	case isRelativeTime(timeIn): return t.fromRelativeTime(timeIn)
 	case isUnixTime(timeIn):     return t.fromUnixTime(timeIn)
+	default:                     return fmt.Errorf("Invalid Time Value")
 	}
 	return fmt.Errorf("Invalid Time Value (Uncaught)")
 }
@@ -96,6 +98,7 @@ func isAbsoluteTime(timeIn string) bool {
 	if err != nil { panic(err) }
 	return match
 }
+
 /*
 isAbsoluteTime verifies if a string is a valid Relative format time.
 
@@ -110,7 +113,7 @@ func isRelativeTime(timeIn string) bool {
 }
 
 /*
-isAbsoluteTime verifies if a string is a valid Unix format time.
+isUnixTime verifies if a string is a valid Unix format time.
 
 Valid formats are:
 	10-digit integer
@@ -128,30 +131,30 @@ func isUnixTime(timeIn string) bool {
 func (t *Time) fromAbsoluteTime(timeIn string) (err error) {
 	t.format = "Absolute"
 	t.string = timeIn
-	t.Time, err = time.Parse("2006/01/02-15:04:05", timeIn)
+	t.time, err = time.Parse("2006/01/02-15:04:05", timeIn)
 	if err == nil { return }
-	t.Time, err = time.Parse("2006/01/02 15:04:05", timeIn)
+	t.time, err = time.Parse("2006/01/02 15:04:05", timeIn)
 	if err == nil { return }
-	t.Time, err = time.Parse("2006/01/02-15:04", timeIn)
+	t.time, err = time.Parse("2006/01/02-15:04", timeIn)
 	if err == nil { return }
-	t.Time, err = time.Parse("2006/01/02 15:04", timeIn)
+	t.time, err = time.Parse("2006/01/02 15:04", timeIn)
 	if err == nil { return }
-	t.Time, err = time.Parse("2006/01/02-15", timeIn)
+	t.time, err = time.Parse("2006/01/02-15", timeIn)
 	if err == nil { return }
-	t.Time, err = time.Parse("2006/01/02 15", timeIn)
+	t.time, err = time.Parse("2006/01/02 15", timeIn)
 	if err == nil { return }
-	t.Time, err = time.Parse("2006/01/02", timeIn)
+	t.time, err = time.Parse("2006/01/02", timeIn)
 	return
 }
 
 // AbsoluteTime returns the string version of a Time in Absolute format.
 func (t *Time) AbsoluteTime() (string) {
 	switch {
-	case t.Second() > 0: return t.Time.Format("2006/01/02-15:04:05")
-	case t.Minute() > 0: return t.Time.Format("2006/01/02-15:04")
-	case t.Hour()   > 0: return t.Time.Format("2006/01/02-15")
+	case t.time.Second() > 0: return t.time.Format("2006/01/02-15:04:05")
+	case t.time.Minute() > 0: return t.time.Format("2006/01/02-15:04")
+	case t.time.Hour()   > 0: return t.time.Format("2006/01/02-15")
 	}
-	return t.Time.Format("2006/01/02")
+	return t.time.Format("2006/01/02")
 }
 
 // fromRelativeTime parses the provided timeIn string and if possible
@@ -164,7 +167,7 @@ func (t *Time) fromRelativeTime(timeIn string) error {
 
 // RelativeTime returns the string version of a Time in Relative format.
 func (t *Time) RelativeTime() (string) {
-	return t.Time.Format("2006/01/02-15:04:05")
+	return t.time.Format("2006/01/02-15:04:05")
 }
 
 // fromUnixTime parses the provided timeIn string and if possible
@@ -175,54 +178,35 @@ func (t *Time) fromUnixTime(timeIn string) (err error) {
 	var timeInInt64 int64
 	timeInInt64, err = strconv.ParseInt(timeIn, 10, 64)
 	if err != nil { return err }
-	t.Time = time.Unix(timeInInt64, 0)
+	t.time = time.Unix(timeInInt64, 0)
 	return nil
 }
 
 /*
-Response respresents a full, valid (non-error) Response from an OpenTSDB query 
+Response respresents a Response from an OpenTSDB query 
 made up of zero or more result types.
 
 See: http://opentsdb.net/docs/build/html/api_http/serializers/json.html#Response
 */
 type Response []result
 
-// result is a single timeseries or aggregate Response from an OpenTSDB query.
-// See: http://opentsdb.net/docs/build/html/api_http/serializers/json.html#Response
+/*
+result is a single timeseries or aggregate Response from an OpenTSDB query.
+
+See: http://opentsdb.net/docs/build/html/api_http/serializers/json.html#Response
+*/
 type result struct {
-	Metric          string             `json:"metric"`
-	Tags            map[string]string  `json:"tags"`
+	Metric `json:"metric"`
+	Tags   `json:"tags"`
+	Dps    []DataPoint `json:"dps"`
 	AggregatedTags  []string           `json:"aggregateTags"`
-	Dps             map[string]tsValue `json:"dps"`
-}
-
-// tsValue represents a timeseries datapoint (timestamp + value).
-type tsValue float64
-
-// UnmarshalJSON implements json.Unmarshaler for consistant conversion from JSON.
-func (v *tsValue) UnmarshalJSON(inJSON []byte) error {
-	var raw interface{}
-	err := json.Unmarshal(inJSON, &raw)
-	if err != nil { panic(err) }
-
-	switch raw.(type) {
-	case float64, int64:
-		*v = tsValue(raw.(float64))
-		return nil
-	case string:
-		i, err := strconv.ParseFloat(raw.(string), 64)
-		if err != nil { return err }
-		*v = tsValue(i)
-		return nil
-	}
-	return &json.UnmarshalTypeError{}
 }
 
 // Query represents the information needed for a single query to OpenTSDB sans
-// time interval.
+// time interval.  A Query can be added to a TSDB Request.
 type Query struct {
 	Aggregator string `json:"aggregator"`
-	Metric     string `json:"metric"`
+	Metric `json:"metric"`
 	Rate       bool   `json:"rate"`
 	Downsample string `json:"downsample,omitempty"`
 	Tags       map[string]string `json:"tags"`
