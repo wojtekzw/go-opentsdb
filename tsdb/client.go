@@ -1,34 +1,35 @@
 package tsdb
 
 import (
-	"net"
 	"net/http"
 	"bytes"
 	"io/ioutil"
 	"encoding/json"
+	"strconv"
 )
 
-// connection represents a connection to an OpenTSDB server.
-type connection struct {
-	http.Client
-	host string
+// Server represents an OpenTSDB server
+type Server struct {
+	Host string
+	Port uint
 }
 
-// Dial returns a new connection type to an OpenTSDB host:port.
-func Dial(host string, port string) (*connection, error) {
-	connection := new(connection)
-	connection.host = net.JoinHostPort(host, port)
-	return connection, nil
+// TSDB represents an OpenTSDB database serviced by one or more
+// Servers.
+type TSDB struct {
+	Servers []Server
 }
 
 // Query takes a TSDB Request and returns the resulting query Response.
-func (c *connection) Query(req Request) (*Response, error) {
-	APIURL := "http://"+c.host+"/api/query"
+func (t *TSDB) Query(req Request) (*Response, error) {
+	// TODO: Handle multiple Servers
+	host := t.Servers[0].Host+":"+strconv.Itoa(int(t.Servers[0].Port))
+	APIURL := "http://"+host+"/api/query"
 	reqJSON, err := json.Marshal(req)
 	if err != nil { return &Response{}, err }
 
 	reqReader := bytes.NewReader(reqJSON)
-	respHTTP, err := c.Post(APIURL, "application/json", reqReader)
+	respHTTP, err := http.Post(APIURL, "application/json", reqReader)
 	if err != nil { panic(err) }
 
 	respJSON, err := ioutil.ReadAll(respHTTP.Body)
