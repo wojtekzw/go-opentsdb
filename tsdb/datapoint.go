@@ -1,10 +1,10 @@
 package tsdb
 
 import (
-	"time"
+	"encoding/json"
 	"errors"
 	"strconv"
-	// "encoding/json"
+	"time"
 )
 
 /*
@@ -12,11 +12,12 @@ DataPoint represents a single data point good for storing in OpenTSDB.
 
 See: http://opentsdb.net/docs/build/html/api_http/serializers/json.html#api-put
 */
+
 type DataPoint struct {
-	Timestamp
-	Metric
-	Value
-	Tags
+	Timestamp *Time   `json:"timestamp"`
+	Metric    *Metric `json:"metric"`
+	Value     *Value  `json:"value"`
+	Tags      *Tags   `json:"tags,omitempty"`
 }
 
 // Timestamp represents a Unix timestamp.
@@ -25,12 +26,12 @@ type Timestamp struct {
 }
 
 // Get retrieves the Unix style time of a Timestamp.
-func (t *Timestamp) Get() int64 {
+func (t Timestamp) Get() int64 {
 	return t.Unix()
 }
 
 // Set a Timestamp from a provided Unix time.
-func (t *Timestamp) Set(inTime int64) error {
+func (t Timestamp) Set(inTime int64) error {
 	// TODO: Support milliseconds
 	// TODO: Sanity check for absurd time value?
 	t.Time = time.Unix(inTime, 0)
@@ -61,7 +62,7 @@ func (m *Metric) UnmarshalJSON(inJSON []byte) error {
 
 func (m *Metric) MarshalJSON() ([]byte, error) {
 	// TODO: Check for empty metric?
-	return []byte(m.string), nil
+	return json.Marshal(m.string)
 }
 
 // Value stores a single timeseries data value.
@@ -95,7 +96,9 @@ func (v *Value) Set(quantity interface{}) error {
 		return nil
 	case string:
 		floatv, err := strconv.ParseFloat(quantity.(string), 64)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		v.float64 = floatv
 		return nil
 	case int:
@@ -103,6 +106,15 @@ func (v *Value) Set(quantity interface{}) error {
 		v.float64 = floatv
 		return nil
 	}
+}
+
+func (v *Value) UnmarshalJSON(inJSON []byte) error {
+	v.Set(inJSON)
+	return nil
+}
+
+func (v *Value) MarshalJSON() ([]byte, error) {
+	return json.Marshal(v.float64)
 }
 
 // Tags contains key/value pairs representing tags
@@ -126,4 +138,9 @@ func (t *Tags) Set(key, value string) error {
 // Remove a tag with provided key from a collection of Tags
 func (t *Tags) Remove(key string) {
 	delete(t.tags, key)
+}
+
+func (t *Tags) MarshalJSON() ([]byte, error) {
+	// TODO: Check for empty metric?
+	return json.Marshal(t.tags)
 }
