@@ -29,41 +29,41 @@ type tsdbSuite struct {
 // Tie our test suite into gocheck
 var _ = Suite(&tsdbSuite{})
 
-func (s *tsdbSuite) Test00ToFromJson(c *C) {
-	for i, v := range s.reqsJSON {
-		testJSON, err := compactJSON(v)
-		c.Assert(err, IsNil)
-		fromJSON := new(Request)
-		err = json.Unmarshal(testJSON, &fromJSON)
-		c.Assert(err, IsNil)
-		s.reqs = append(s.reqs, *fromJSON)
-		JSONFromReq, err := json.Marshal(s.reqs[i])
-		c.Assert(err, IsNil)
-		var raw0, raw1 interface{}
-		err = json.Unmarshal(JSONFromReq, &raw0)
-		c.Assert(err, IsNil)
-		err = json.Unmarshal(testJSON, &raw1)
-		c.Assert(err, IsNil)
-		c.Assert(raw0, DeepEquals, raw1)
-	}
-}
+// func (s *tsdbSuite) Test00ToFromJson(c *C) {
+// 	for i, v := range s.reqsJSON {
+// 		testJSON, err := compactJSON(v)
+// 		c.Assert(err, IsNil)
+// 		fromJSON := new(Request)
+// 		err = json.Unmarshal(testJSON, &fromJSON)
+// 		c.Assert(err, IsNil)
+// 		s.reqs = append(s.reqs, *fromJSON)
+// 		JSONFromReq, err := json.Marshal(s.reqs[i])
+// 		c.Assert(err, IsNil)
+// 		var raw0, raw1 interface{}
+// 		err = json.Unmarshal(JSONFromReq, &raw0)
+// 		c.Assert(err, IsNil)
+// 		err = json.Unmarshal(testJSON, &raw1)
+// 		c.Assert(err, IsNil)
+// 		c.Assert(raw0, DeepEquals, raw1)
+// 	}
+// }
 
-func (s *tsdbSuite) Test01Query(c *C) {
-	for i, v := range s.reqs {
-		qResp, err := s.db.Query(v)
-		c.Assert(err, IsNil)
-		var JSONFromResp []byte
-		JSONFromResp, err = json.Marshal(qResp)
-		c.Assert(err, IsNil)
-		var raw0, raw1 interface{}
-		err = json.Unmarshal(JSONFromResp, &raw0)
-		c.Assert(err, IsNil)
-		err = json.Unmarshal(s.respsJSON[i], &raw1)
-		c.Assert(err, IsNil)
-		c.Assert(raw0, DeepEquals, raw1)
-		s.resps = append(s.resps, *qResp)
-	}
-}
+// func (s *tsdbSuite) Test01Query(c *C) {
+// 	for i, v := range s.reqs {
+// 		qResp, err := s.db.Query(v)
+// 		c.Assert(err, IsNil)
+// 		var JSONFromResp []byte
+// 		JSONFromResp, err = json.Marshal(qResp)
+// 		c.Assert(err, IsNil)
+// 		var raw0, raw1 interface{}
+// 		err = json.Unmarshal(JSONFromResp, &raw0)
+// 		c.Assert(err, IsNil)
+// 		err = json.Unmarshal(s.respsJSON[i], &raw1)
+// 		c.Assert(err, IsNil)
+// 		c.Assert(raw0, DeepEquals, raw1)
+// 		s.resps = append(s.resps, *qResp)
+// 	}
+// }
 
 func (s *tsdbSuite) SetUpSuite(c *C) {
 	var err error
