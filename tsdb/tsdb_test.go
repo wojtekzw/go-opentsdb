@@ -1,12 +1,13 @@
 package tsdb
 
 import (
-	. "launchpad.net/gocheck"
-	"testing"
-	"io/ioutil"
-	"strings"
 	"bytes"
 	"encoding/json"
+	. "gopkg.in/check.v1"
+	"io/ioutil"
+	"strings"
+	"testing"
+
 	// "github.com/davecgh/go-spew/spew"
 )
 
@@ -14,9 +15,9 @@ import (
 func Test(t *testing.T) { TestingT(t) }
 
 type tsdbSuite struct {
-	db        *TSDB
-	reqs      []Request
-	resps     []Response
+	db    *TSDB
+	reqs  []Request
+	resps []Response
 	// dpts      []dataPoint
 	// queries   []query
 	reqsJSON     [][]byte // Correct JSON requests. Populated by json files.
@@ -71,35 +72,47 @@ func (s *tsdbSuite) SetUpSuite(c *C) {
 	// s.conn, err = Dial("testtsdb", 4242)
 	// if err != nil { panic(err) }
 
-	testserver := &Server{Host:"testtsdb", Port:4242}
+	testserver := &Server{Host: "192.168.59.103", Port: 4242}
 	s.db = &TSDB{Servers: []Server{*testserver}}
 
 	// Load from JSON files
-	testFiles, err := ioutil.ReadDir("test-metrics/json")
-	if err != nil { panic(err) }
+	testFiles, err := ioutil.ReadDir("test-metrics/json/")
+	if err != nil {
+		panic(err)
+	}
 	for _, v := range testFiles {
-		if v.IsDir() { continue }
+		if v.IsDir() {
+			continue
+		}
 		if strings.Contains(v.Name(), "-err-request.json") {
-			json, err := ioutil.ReadFile("test-metrics/json/"+v.Name())
-			if err != nil { panic(err) }
+			json, err := ioutil.ReadFile("test-metrics/json/" + v.Name())
+			if err != nil {
+				panic(err)
+			}
 			s.errReqsJSON = append(s.errReqsJSON, json)
 			continue
 		}
 		if strings.Contains(v.Name(), "-err-response.json") {
-			json, err := ioutil.ReadFile("test-metrics/json/"+v.Name())
-			if err != nil { panic(err) }
+			json, err := ioutil.ReadFile("test-metrics/json/" + v.Name())
+			if err != nil {
+				panic(err)
+			}
 			s.errRespsJSON = append(s.errRespsJSON, json)
 			continue
 		}
 		if strings.Contains(v.Name(), "-request.json") {
-			json, err := ioutil.ReadFile("test-metrics/json/"+v.Name())
-			if err != nil { panic(err) }
+			json, err := ioutil.ReadFile("test-metrics/json/" + v.Name())
+			if err != nil {
+				panic(err)
+			}
 			s.reqsJSON = append(s.reqsJSON, json)
 			continue
 		}
 		if strings.Contains(v.Name(), "-response.json") {
-			json, err := ioutil.ReadFile("test-metrics/json/"+v.Name())
-			if err != nil { panic(err) }
+			json, err := ioutil.ReadFile("test-metrics/json/" + v.Name())
+			if err != nil {
+				panic(err)
+			}
 			s.respsJSON = append(s.respsJSON, json)
 		}
 	}
@@ -109,6 +122,8 @@ func (s *tsdbSuite) SetUpSuite(c *C) {
 func compactJSON(inJSON []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	err := json.Compact(&buf, inJSON)
-	if err != nil { return []byte(nil), err }
+	if err != nil {
+		return []byte(nil), err
+	}
 	return buf.Bytes(), nil
 }
