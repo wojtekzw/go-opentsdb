@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -67,12 +68,18 @@ func (m *Metric) MarshalJSON() ([]byte, error) {
 
 // Value stores a single timeseries data value.
 type Value struct {
-	float64
+	float64 float64
+	int64   int64
 }
 
 // Get a Value's float64 representation
-func (v *Value) Get() float64 {
+func (v *Value) GetFloat() float64 {
 	return v.float64
+}
+
+// Get a Value's int representation
+func (v *Value) GetInt() int64 {
+	return v.int64
 }
 
 /*
@@ -89,21 +96,31 @@ func (v *Value) Set(quantity interface{}) error {
 	default:
 		return errors.New("Invalid Value")
 	case Value:
-		*v = quantity.(Value)
+		v.float64 = quantity.(float64)
+		v.int64 = quantity.(int64)
 		return nil
 	case float64:
 		v.float64 = quantity.(float64)
 		return nil
 	case string:
-		floatv, err := strconv.ParseFloat(quantity.(string), 64)
-		if err != nil {
-			return err
+		stringv := quantity.(string)
+		if strings.Contains(stringv, ".") {
+			floatv, err := strconv.ParseFloat(quantity.(string), 64)
+			if err != nil {
+				return err
+			}
+			v.float64 = floatv
+		} else {
+			intv, err := strconv.ParseInt(quantity.(string), 10, 64)
+			if err != nil {
+				return err
+			}
+			v.int64 = int64(intv)
 		}
-		v.float64 = floatv
 		return nil
 	case int:
-		floatv := float64(quantity.(int))
-		v.float64 = floatv
+		intv := int64(quantity.(int))
+		v.int64 = intv
 		return nil
 	}
 }
@@ -114,6 +131,13 @@ func (v *Value) UnmarshalJSON(inJSON []byte) error {
 }
 
 func (v *Value) MarshalJSON() ([]byte, error) {
+	if v.float64 != 0 {
+		return json.Marshal(v.float64)
+	} else if v.int64 != 0 {
+		return json.Marshal(v.int64)
+	} else {
+		return json.Marshal(0)
+	}
 	return json.Marshal(v.float64)
 }
 

@@ -36,8 +36,6 @@ func TestPut(t *testing.T) {
 	metric.Set("sys.cpu.nice")
 
 	value := &Value{}
-	value.Set(100)
-
 	timestamp := &Time{}
 	err := timestamp.Parse(fmt.Sprint(time.Now().Unix()))
 
