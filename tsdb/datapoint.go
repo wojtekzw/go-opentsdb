@@ -130,6 +130,10 @@ func (t *Tags) Get(key string) string {
 // Set updates an existing tag or creates a tag if the provided key
 // is yet in use.
 func (t *Tags) Set(key, value string) error {
+	if t.tags == nil {
+		t.tags = make(map[string]string)
+	}
+
 	// TODO: Sanity check for invalid characters
 	t.tags[key] = value
 	return nil

@@ -7,6 +7,7 @@ package tsdb
 
 import (
 	"flag"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -27,28 +28,25 @@ func TestPut(t *testing.T) {
 		},
 	}
 
-	tags := make(map[string]string)
-	tags["host"] = "web01"
-	tags["dc"] = "lga"
+	tags := &Tags{}
+	tags.Set("host", "web01")
+	tags.Set("dc", "lga")
+
+	metric := &Metric{}
+	metric.Set("sys.cpu.nice")
+
+	value := &Value{}
+	value.Set(100)
+
+	timestamp := &Time{}
+	err := timestamp.Parse(fmt.Sprint(time.Now().Unix()))
 
 	dataPoints := []DataPoint{
 		DataPoint{
-			Timestamp: &Time{time.Now().Add(-30 * time.Second), "Unix", ""},
-			Metric:    &Metric{"sys.cpu.nice"},
-			Value:     &Value{float64: 80},
-			Tags:      &Tags{tags},
-		},
-		DataPoint{
-			Timestamp: &Time{time.Now().Add(-20 * time.Second), "Unix", ""},
-			Metric:    &Metric{"sys.cpu.nice"},
-			Value:     &Value{float64: 90},
-			Tags:      &Tags{tags},
-		},
-		DataPoint{
-			Timestamp: &Time{time.Now().Add(-10 * time.Second), "Unix", ""},
-			Metric:    &Metric{"sys.cpu.nice"},
-			Value:     &Value{float64: 100},
-			Tags:      &Tags{tags},
+			Timestamp: timestamp,
+			Metric:    metric,
+			Value:     value,
+			Tags:      tags,
 		},
 	}
 
