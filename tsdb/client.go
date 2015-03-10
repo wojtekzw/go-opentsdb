@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 )
 
@@ -64,7 +63,6 @@ func (t *TSDB) Put(dataPoints []DataPoint) (*PutResponse, error) {
 	reqJSON, err := json.Marshal(dataPoints)
 
 	if err != nil {
-		log.Printf("%v", err)
 		return &PutResponse{}, err
 	}
 
@@ -74,8 +72,6 @@ func (t *TSDB) Put(dataPoints []DataPoint) (*PutResponse, error) {
 	if err != nil {
 		panic(err)
 	}
-
-	log.Printf("%v", respHTTP)
 
 	respJSON, err := ioutil.ReadAll(respHTTP.Body)
 	if err != nil {
