@@ -99,8 +99,11 @@ func (v *Value) Set(quantity interface{}) error {
 		v.float64 = quantity.(float64)
 		v.int64 = quantity.(int64)
 		return nil
-	case float64, float32:
+	case float64:
 		v.float64 = quantity.(float64)
+		return nil
+	case float32:
+		v.float64 = float64(quantity.(float32))
 		return nil
 	case string:
 		stringv := quantity.(string)
@@ -118,9 +121,20 @@ func (v *Value) Set(quantity interface{}) error {
 			v.int64 = int64(intv)
 		}
 		return nil
-	case int, int64, int32, int16, int8:
-		intv := int64(quantity.(int))
-		v.int64 = intv
+	case int:
+		v.int64 = int64(quantity.(int))
+		return nil
+	case int64:
+		v.int64 = int64(quantity.(int64))
+		return nil
+	case int32:
+		v.int64 = int64(quantity.(int32))
+		return nil
+	case int16:
+		v.int64 = int64(quantity.(int16))
+		return nil
+	case int8:
+		v.int64 = int64(quantity.(int8))
 		return nil
 	}
 }
