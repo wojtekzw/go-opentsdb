@@ -3,6 +3,7 @@ package tsdb
 import (
 	"encoding/json"
 	"errors"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,40 @@ type DataPoint struct {
 	Metric    *Metric `json:"metric"`
 	Value     *Value  `json:"value"`
 	Tags      *Tags   `json:"tags,omitempty"`
+}
+
+type Dps struct {
+	DataPoints []DataPoint
+}
+
+func (d *Dps) UnmarshalJSON(inJSON []byte) error {
+	var dps map[string]interface{}
+	json.Unmarshal(inJSON, &dps)
+
+	// Sort by key (timestamp) since a map isn't sorted
+	var keys []string
+	for k := range dps {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	// Create ordered list of points
+	d.DataPoints = make([]DataPoint, len(keys))
+	for index, key := range keys {
+		time := &Time{}
+		time.Parse(key)
+
+		value := &Value{}
+		value.Set(dps[key])
+
+		dataPoint := DataPoint{
+			Timestamp: time,
+			Value:     value,
+		}
+		d.DataPoints[index] = dataPoint
+	}
+
+	return nil
 }
 
 // Timestamp represents a Unix timestamp.
@@ -57,7 +92,7 @@ func (m *Metric) Set(name string) error {
 }
 
 func (m *Metric) UnmarshalJSON(inJSON []byte) error {
-	m.string = string(inJSON)
+	json.Unmarshal(inJSON, &m.string)
 	return nil
 }
 

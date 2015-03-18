@@ -32,6 +32,7 @@ func (t *TSDB) Query(req Request) (*Response, error) {
 	APIURL := "http://" + host + "/api/query"
 
 	reqJSON, err := json.Marshal(req)
+
 	if err != nil {
 		return &Response{}, err
 	}
@@ -48,6 +49,7 @@ func (t *TSDB) Query(req Request) (*Response, error) {
 	}
 
 	resp := new(Response)
+
 	err = json.Unmarshal(respJSON, &resp)
 	if err != nil {
 		return &Response{}, err
@@ -70,7 +72,7 @@ func (t *TSDB) Put(dataPoints []DataPoint) (*PutResponse, error) {
 
 	respHTTP, err := http.Post(APIURL, "application/json", reqReader)
 	if err != nil {
-		panic(err)
+		return &PutResponse{}, err
 	}
 
 	respJSON, err := ioutil.ReadAll(respHTTP.Body)

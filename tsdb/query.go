@@ -3,20 +3,19 @@
 package tsdb
 
 import (
-	"time"
 	"encoding/json"
-	"regexp"
 	"fmt"
+	"regexp"
 	"strconv"
-	// "github.com/davecgh/go-spew/spew"
+	"time"
 )
 
 // Request represents the information needed to query a TSDB for timeseries data.
 type Request struct {
-	Start   *Time  `json:"start"`
-	End     *Time  `json:"end,omitempty"` // Optional
-	Padding bool     `json:"padding,omitempty"` // Optional
-	Queries []Query  `json:"queries"`
+	Start   *Time   `json:"start"`
+	End     *Time   `json:"end,omitempty"`     // Optional
+	Padding bool    `json:"padding,omitempty"` // Optional
+	Queries []Query `json:"queries"`
 }
 
 /*
@@ -31,6 +30,10 @@ type Time struct {
 	time   time.Time
 	format string
 	string
+}
+
+func (t *Time) Time() time.Time {
+	return t.time
 }
 
 // UnmarshalJSON implements json.Unmarshaler for consistant conversion from JSON.
@@ -196,18 +199,18 @@ result is a single timeseries or aggregate Response from an OpenTSDB query.
 See: http://opentsdb.net/docs/build/html/api_http/serializers/json.html#Response
 */
 type result struct {
-	Metric `json:"metric"`
-	Tags   `json:"tags"`
-	Dps    []DataPoint `json:"dps"`
-	AggregatedTags  []string           `json:"aggregateTags"`
+	Metric         Metric            `json:"metric"`
+	Tags           map[string]string `json:"tags"`
+	Dps            Dps               `json:"dps"`
+	AggregatedTags []string          `json:"aggregateTags"`
 }
 
 // Query represents the information needed for a single query to OpenTSDB sans
 // time interval.  A Query can be added to a TSDB Request.
 type Query struct {
-	Aggregator string `json:"aggregator"`
-	Metric `json:"metric"`
-	Rate       bool   `json:"rate"`
-	Downsample string `json:"downsample,omitempty"`
+	Aggregator string            `json:"aggregator"`
+	Metric     Metric            `json:"metric"`
+	Rate       bool              `json:"rate"`
+	Downsample string            `json:"downsample,omitempty"`
 	Tags       map[string]string `json:"tags"`
 }
